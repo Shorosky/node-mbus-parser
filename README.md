@@ -38,6 +38,19 @@ mbusMaster.getData(1, function(err, data) {
 
     mbusMaster.close();
 });
+
+// frame decrypting
+var rawFrame = "68A1A16808007266432863C51400040927000004788EA4C503046D2933FC2604157D6F0000441550670000840115796F00000406697F0000440625770000840106697F000084100600000000C410060000000084110600000000426CDF2C026CFF2C8420060000000084300600000000043B00000000143BAC210000042B00000000142B3CA50000025B1800025F19000461FCFFFFFF0223D00901FD17000490280B0000009816";
+
+mbusMaster.decodeFrame(rawFrame, function(err, data) {
+    if (!err && data) {
+        console.log('Meter: ' + data.SlaveInformation.Manufacturer + "_" + data.SlaveInformation.Id);
+        console.log('data: ' + JSON.stringify(data));
+    }
+else if (err)
+        console.log('error: ' + err);
+});
+
 ```
 
 ## Method description
@@ -164,6 +177,9 @@ So just know that it can take very long :-)
 ### setPrimaryId(oldAddress, newAddress, callback)
 This method allows you to set a new primary ID for a device. You can use any primary (Number, 0..250) or secondary (string, 16 characters long) address as *oldAddress*. The *newAddress* must be a primary address as Number 0..250. The callback will be called with an empty *error* parameter on success or an Error object on failure.
 When you try to read data while communication is in progress your callback is called with an error.
+
+### decodeFrame(frame, callback)
+This method returns raw frame decripted as object. You don't need stablish comunication, only send string with raw frame. Callbak returns error if decription was wrong.
 
 ## MBust-Master Devices reported as working
 * Aliexpress USB MBus Master (https://m.de.aliexpress.com/item/32755430755.html?trace=wwwdetail2mobilesitedetail&productId=32755430755&productSubject=MBUS-to-USB-master-module-MBUS-device-debugging-dedicated-no-power-supply)

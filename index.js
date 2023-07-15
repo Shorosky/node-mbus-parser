@@ -165,6 +165,33 @@ class MbusMaster {
         });
     }
 
+    decodeFrame(rawFrame, callback) {
+            this.mbusMaster.decodeFrame(rawFrame, rawFrame.length, (err, data) => {
+                if (!err && data) {
+                    const parserOpt = {
+                        explicitArray: false,
+                        mergeAttrs: true,
+                        valueProcessors: [xmlParser.processors.parseNumbers],
+                        attrValueProcessors: [xmlParser.processors.parseNumbers]
+                    };
+                    xmlParser.parseString(data, parserOpt, (err, result) => {
+                        if (!err && result && result.MBusData) {
+                            result = result.MBusData;
+                            if (result.DataRecord && !Array.isArray(result.DataRecord)) {
+                                result.DataRecord = [result.DataRecord];
+                            }
+                        }
+                        if (callback) callback(err, result);
+                    });
+                    return;
+                }
+                else {
+                    err = new Error(err);
+                }
+                if (callback) callback(err, data);
+            });
+    }
+
     getDataAsync(address) {
         return new Promise((resolve, reject) => {
             this.getData(address, (err, data) => {

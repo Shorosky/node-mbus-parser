@@ -52,6 +52,7 @@ NAN_MODULE_INIT(MbusMaster::Init) {
     Nan::SetPrototypeMethod(tpl, "get", Get);
     Nan::SetPrototypeMethod(tpl, "scan", ScanSecondary);
     Nan::SetPrototypeMethod(tpl, "setPrimaryId", SetPrimaryId);
+    Nan::SetPrototypeMethod(tpl, "decodeFrame", DecodeFrame);
 
     v8::Local<v8::Function> function = Nan::GetFunction(tpl).ToLocalChecked();
     constructor.Reset(function);
@@ -407,6 +408,59 @@ NAN_METHOD(MbusMaster::Get) {
         };
         callback->Call(1, argv);
     }
+    info.GetReturnValue().SetUndefined();
+}
+
+
+NAN_METHOD(MbusMaster::DecodeFrame) {
+    Nan::HandleScope scope;
+
+    MbusMaster* obj = node::ObjectWrap::Unwrap<MbusMaster>(info.This());
+
+    char *rawData = get(Nan::To<v8::String>(info[0]).ToLocalChecked(),"0");
+    size_t dataSize = (long)Nan::To<int64_t>(info[1]).FromJust();
+    Nan::Callback *callback = new Nan::Callback(info[2].As<Function>());
+
+    unsigned char binData[1024];
+    char error[100];
+    char *xml_result = NULL;
+    size_t buff_len;
+    mbus_frame reply;
+    //mbus_frame_data frame_data;
+    int result;
+
+    buff_len = mbus_hex2bin(binData, sizeof(binData), (unsigned char*)rawData, dataSize);
+
+    memset((void *)&reply, 0, sizeof(mbus_frame));
+
+    result = mbus_parse(&reply, binData, buff_len);
+    //result = mbus_frame_data_parse(&reply, &frame_data);
+    if (result < 0 )
+    {
+        sprintf(error, "MBUS Error: %s\n", mbus_error_str);
+    }
+    else if (result > 0 )
+    {
+        sprintf(error, "MBUS Error: need %d more bytes\n", result);
+    }
+
+    if ((xml_result = mbus_frame_xml(&reply)) != NULL)
+    //if ((xml_result = mbus_frame_data_xml(&frame_data)) != NULL)
+    {
+        Local<Value> argv[] = {
+            Nan::Null(),
+            Nan::New<String>(xml_result).ToLocalChecked()
+        };
+        callback->Call(2, argv);
+    } else {
+        if (!error) sprintf(error, "MBUS Error con xml parser: %s\n", mbus_error_str());
+        Local<Value> argv[] = {
+            Nan::Error(error)
+        };
+        callback->Call(1, argv);
+    }
+    free(xml_result);
+    mbus_frame_free((mbus_frame*)reply.next);
     info.GetReturnValue().SetUndefined();
 }
 
